@@ -85,11 +85,6 @@ module sha512(
   parameter CORE_NAME1           = 32'h2d353132; // "-512"
   parameter CORE_VERSION         = 32'h302e3830; // "0.80"
 
-  parameter MODE_SHA_512_224     = 2'h0;
-  parameter MODE_SHA_512_256     = 2'h1;
-  parameter MODE_SHA_384         = 2'h2;
-  parameter MODE_SHA_512         = 2'h3;
-
   parameter DEFAULT_WORK_FACTOR_NUM = 32'h000f0000;
 
 
@@ -107,10 +102,6 @@ module sha512(
   reg work_factor_reg;
   reg work_factor_new;
   reg work_factor_we;
-
-  reg [1 : 0] mode_reg;
-  reg [1 : 0] mode_new;
-  reg         mode_we;
 
   reg [31 : 0] work_factor_num_reg;
   reg          work_factor_num_we;
@@ -160,7 +151,6 @@ module sha512(
 
                    .init(init_reg),
                    .next(next_reg),
-                   .mode(mode_reg),
 
                    .work_factor(work_factor_reg),
                    .work_factor_num(work_factor_num_reg),
@@ -192,7 +182,6 @@ module sha512(
 
           init_reg            <= 1'h0;
           next_reg            <= 1'h0;
-          mode_reg            <= MODE_SHA_512;
           work_factor_reg     <= 1'h0;
           work_factor_num_reg <= DEFAULT_WORK_FACTOR_NUM;
           ready_reg           <= 1'h0;
@@ -205,9 +194,6 @@ module sha512(
           digest_valid_reg <= core_digest_valid;
           init_reg         <= init_new;
           next_reg         <= next_new;
-
-          if (mode_we)
-            mode_reg <= mode_new;
 
           if (work_factor_we)
             work_factor_reg <= work_factor_new;
@@ -234,8 +220,6 @@ module sha512(
     begin : api_logic
       init_new           = 1'h0;
       next_new           = 1'h0;
-      mode_new           = MODE_SHA_512;
-      mode_we            = 1'h0;
       work_factor_new    = 1'h0;
       work_factor_we     = 1'h0;
       work_factor_num_we = 1'h0;
@@ -257,8 +241,6 @@ module sha512(
                   begin
                     init_new        = write_data[CTRL_INIT_BIT];
                     next_new        = write_data[CTRL_NEXT_BIT];
-                    mode_new        = write_data[CTRL_MODE_HIGH_BIT : CTRL_MODE_LOW_BIT];
-                    mode_we         = 1'h1;
                     work_factor_new = write_data[CTRL_WORK_FACTOR_BIT];
                     work_factor_we  = 1'h1;
                   end
@@ -289,8 +271,8 @@ module sha512(
                 ADDR_VERSION:
                   tmp_read_data = CORE_VERSION;
 
-                ADDR_CTRL:
-                  tmp_read_data = {24'h0, work_factor_reg, 3'b0, mode_reg, next_reg, init_reg};
+                //ADDR_CTRL:
+                  //tmp_read_data = {24'h0, work_factor_reg, 3'b0, mode_reg, next_reg, init_reg};
 
                 ADDR_STATUS:
                   tmp_read_data = {30'h0, digest_valid_reg, ready_reg};
