@@ -44,7 +44,6 @@ module sha512_core(
                    input wire            reset_n,   // Resets W block, active low
 
                    input wire            init,      // Initializes first round, active high. Pull high before a new series of PBKDF rounds. Mutually exclusive with 'next'.
-                   input wire            next,      // Active high. When high, keeps calculating the next PBKF round. 
 
                    input wire [1023 : 0] block,
 
@@ -494,19 +493,6 @@ module sha512_core(
                 sha512_ctrl_new     = CTRL_ROUNDS;
                 sha512_ctrl_we      = 1;
               end
-
-            if (next)
-              begin
-                ready_new           = 1'b0;
-                ready_we            = 1'b1;
-                w_init              = 1;
-                state_init          = 1;
-                round_ctr_rst       = 1;
-                digest_valid_new    = 0;
-                digest_valid_we     = 1;
-                sha512_ctrl_new     = CTRL_ROUNDS;
-                sha512_ctrl_we      = 1;
-              end
           end
 
 
@@ -522,7 +508,6 @@ module sha512_core(
                 sha512_ctrl_we      = 1;
               end
           end
-
 
         CTRL_DONE:
           begin

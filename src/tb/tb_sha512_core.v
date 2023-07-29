@@ -58,8 +58,7 @@ module tb_sha512_core();
   reg            tb_clk;
   reg            tb_reset_n;
   reg            tb_init;
-  reg            tb_next;
-
+  
   reg [1023 : 0] tb_block;
   wire           tb_ready;
 
@@ -75,7 +74,6 @@ module tb_sha512_core();
                    .reset_n(tb_reset_n),
 
                    .init(tb_init),
-                   .next(tb_next),
 
                    .block(tb_block),
 
@@ -125,8 +123,7 @@ module tb_sha512_core();
       $display("State of DUT");
       $display("------------");
       $display("Inputs and outputs:");
-      $display("init   = 0x%01x, next  = 0x%01x",
-               dut.init, dut.next);
+      $display("init   = 0x%01x", dut.init);
       $display("block  = 0x%0128x", dut.block);
 
       $display("ready  = 0x%01x, valid = 0x%01x",
@@ -227,8 +224,6 @@ module tb_sha512_core();
       tb_reset_n = 1;
 
       tb_init = 0;
-      tb_next = 0;
-      tb_next = 2'b00;
 
       tb_block = {32{32'h00000000}};
     end
@@ -313,81 +308,7 @@ module tb_sha512_core();
    end
   endtask // single_block_test
 
-  //----------------------------------------------------------------
-  // double_block_test()
-  //
-  // Run a test case spanning two data blocks. We check both
-  // intermediate and final digest.
-  //----------------------------------------------------------------
-  task double_block_test(input [7 : 0]    tc_number,
-                         input [1023 : 0] block1,
-                         input [1023 : 0] block2,
-                         input [511 : 0]  expected1,
-                         input [511 : 0]  expected2);
-
-    reg [511 : 0] mask;
-    reg [511 : 0] db_digest1;
-    reg           db_error;
-   begin
-     $display("*** TC %0d double block test case started.", tc_number);
-     db_error = 0;
-     tc_ctr = tc_ctr + 1;
-
-     $display("*** TC %0d first block started.", tc_number);
-     tb_block = block1;
-     tb_init = 1;
-     #(2 * CLK_PERIOD);
-     tb_init = 0;
-     wait_ready();
-     db_digest1 = tb_digest;
-     $display("*** TC %0d first block done.", tc_number);
-
-     $display("*** TC %0d second block started.", tc_number);
-     tb_block = block2;
-     tb_next = 1;
-     #(2 * CLK_PERIOD);
-     tb_next = 0;
-     wait_ready();
-     $display("*** TC %0d second block done.", tc_number);
-
-     if (db_digest1 == expected1)
-       begin
-         $display("*** TC %0d first block successful", tc_number);
-         $display("");
-       end
-     else
-       begin
-         $display("*** ERROR: TC %0d first block NOT successful", tc_number);
-         $display("Expected: 0x%064x", expected1);
-         $display("Got:      0x%064x", db_digest1);
-         $display("");
-         db_error = 1;
-       end
-
-    
-     mask = {16{32'hffffffff}};
-         
-     if ((tb_digest & mask) == expected2)
-       begin
-         $display("*** TC %0d second block successful", tc_number);
-         $display("");
-       end
-     else
-       begin
-         $display("*** ERROR: TC %0d second block NOT successful", tc_number);
-         $display("Expected: 0x%064x", expected2);
-         $display("Got:      0x%064x", tb_digest);
-         $display("");
-         db_error = 1;
-       end
-
-     if (db_error)
-       begin
-         error_ctr = error_ctr + 1;
-       end
-   end
-  endtask // double_block_test
-
+  
 
   //----------------------------------------------------------------
   // sha512_core_test
@@ -429,14 +350,6 @@ module tb_sha512_core();
       tc1_expected = 512'hDDAF35A193617ABACC417349AE20413112E6FA4E89A97EA20A9EEEE64B55D39A2192992A274FC1A836BA3C23A3FEEBBD454D4423643CE80E2A9AC94FA54CA49F;
       single_block_test(8'h01, single_block, tc1_expected);
 
-      // Two block test message.
-      double_block_one = 1024'h61626364656667686263646566676869636465666768696A6465666768696A6B65666768696A6B6C666768696A6B6C6D6768696A6B6C6D6E68696A6B6C6D6E6F696A6B6C6D6E6F706A6B6C6D6E6F70716B6C6D6E6F7071726C6D6E6F707172736D6E6F70717273746E6F70717273747580000000000000000000000000000000;
-      double_block_two = 1024'h0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000380;
-
-      // SHA-512 two block digests and test.
-      tc5_expected = 512'h4319017A2B706E69CD4B05938BAE5E890186BF199F30AA956EF8B71D2F810585D787D6764B20BDA2A26014470973692000EC057F37D14B8E06ADD5B50E671C72;
-      tc6_expected = 512'h8E959B75DAE313DA8CF4F72814FC143F8F7779C6EB9F7FA17299AEADB6889018501D289E4900F7E4331B99DEC4B5433AC7D329EEB6DD26545E96E55B874BE909;
-      double_block_test(8'h05, double_block_one, double_block_two, tc5_expected, tc6_expected);
 
       display_test_result();
       $display("*** Simulation done.");
