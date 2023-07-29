@@ -58,14 +58,11 @@ module tb_sha512_core();
   reg            tb_clk;
   reg            tb_reset_n;
   reg            tb_init;
-  reg [31 : 0]   tb_rounds;
   
   reg [1023 : 0] tb_block;
   wire           tb_ready;
 
   wire [511 : 0] tb_digest;
-  wire           tb_digest_valid;
-
 
   //----------------------------------------------------------------
   // Device Under Test.
@@ -75,14 +72,12 @@ module tb_sha512_core();
                    .reset_n(tb_reset_n),
 
                    .init(tb_init),
-                   .sha_rounds(tb_rounds),
 
                    .block(tb_block),
 
                    .ready(tb_ready),
 
-                   .digest(tb_digest),
-                   .digest_valid(tb_digest_valid)
+                   .digest(tb_digest)
                  );
 
 
@@ -128,8 +123,7 @@ module tb_sha512_core();
       $display("init   = 0x%01x", dut.init);
       $display("block  = 0x%0128x", dut.block);
 
-      $display("ready  = 0x%01x, valid = 0x%01x",
-               dut.ready, dut.digest_valid);
+      $display("ready  = 0x%01x", dut.ready);
       $display("digest = 0x%064x", dut.digest);
       $display("H0_reg = 0x%08x, H1_reg = 0x%08x, H2_reg = 0x%08x, H3_reg = 0x%08x",
                dut.H0_reg, dut.H1_reg, dut.H2_reg, dut.H3_reg);
@@ -143,8 +137,7 @@ module tb_sha512_core();
                dut.digest_init, dut.digest_update);
       $display("state_init      = 0x%01x, state_update  = 0x%01x",
                dut.state_init, dut.state_update);
-      $display("first_block     = 0x%01x, ready_reg    = 0x%01x, w_init    = 0x%01x",
-               dut.first_block, dut.ready_reg, dut.w_init);
+      $display("ready_reg    = 0x%01x, w_init    = 0x%01x",dut.ready_reg, dut.w_init);
       $display("round_ctr_inc       = 0x%01x, round_ctr_rst     = 0x%01x, round_ctr_reg = 0x%02x",
                dut.round_ctr_inc, dut.round_ctr_rst, dut.round_ctr_reg);
       $display("");
@@ -284,7 +277,6 @@ module tb_sha512_core();
 
      tb_block = block;
      tb_init = 1;
-     tb_rounds = 32'd1;
      
      #(2 * CLK_PERIOD);
      tb_init = 0;
@@ -308,46 +300,7 @@ module tb_sha512_core();
    end
   endtask // single_block_test
 
-  //----------------------------------------------------------------
-  // multi_round_test()
-  //
-  // Run a test case spanning a multiple SHA512 rounds
-  //----------------------------------------------------------------
-  task multi_round_test(input [7 : 0]    tc_number,
-                         input [1023 : 0] block,
-                         input [511 : 0]  expected);
-
-  begin
-    $display("*** TC %0d single block test case started.", tc_number);
-    tc_ctr = tc_ctr + 1;
-
-    tb_block = block;
-    tb_init = 1;
-    tb_rounds = 32'd2;
-
-    #(2 * CLK_PERIOD);
-    tb_init = 0;
-
-    wait_ready();
-
-    if (tb_digest == expected)
-      begin
-        $display("*** TC %0d successful.", tc_number);
-        $display("");
-      end
-    else
-      begin
-        $display("*** ERROR: TC %0d NOT successful.", tc_number);
-        $display("Expected: 0x%064x", expected);
-        $display("Got:      0x%064x", tb_digest);
-        $display("");
-
-        error_ctr = error_ctr + 1;
-      end
-   end
-
-  endtask
-
+ 
   
 
   //----------------------------------------------------------------
@@ -361,7 +314,6 @@ module tb_sha512_core();
     begin : sha512_core_test
       reg [1024 : 0] single_block;
       reg [511 : 0]  tc1_expected;
-      reg [511 : 0]  tc2_expected;
       
       $display("   -- Testbench for sha512 core started --");
 
@@ -378,10 +330,6 @@ module tb_sha512_core();
       single_block_test(8'h01, single_block, tc1_expected);
 
 
-      // Multi round test message
-      single_block = 1024'h6162638000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000018;
-      tc2_expected = 512'hb0568cb91b7eadc05b54993f0a9b9543ac980a14a57924325e36295b11f3b203d6a647a568f76b188ba299aebed0b36760bea74871a4ef6d1dffd667d0295a74;
-      multi_round_test(8'h02, single_block, tc2_expected);
 
 
       display_test_result();
