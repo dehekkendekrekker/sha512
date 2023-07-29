@@ -58,6 +58,7 @@ module tb_sha512_core();
   reg            tb_clk;
   reg            tb_reset_n;
   reg            tb_init;
+  reg [31 : 0]   tb_rounds;
   
   reg [1023 : 0] tb_block;
   wire           tb_ready;
@@ -74,6 +75,7 @@ module tb_sha512_core();
                    .reset_n(tb_reset_n),
 
                    .init(tb_init),
+                   .sha_rounds(tb_rounds),
 
                    .block(tb_block),
 
@@ -282,6 +284,8 @@ module tb_sha512_core();
 
      tb_block = block;
      tb_init = 1;
+     tb_rounds = 32'd1;
+     
      #(2 * CLK_PERIOD);
      tb_init = 0;
 
@@ -309,7 +313,40 @@ module tb_sha512_core();
   //
   // Run a test case spanning a multiple SHA512 rounds
   //----------------------------------------------------------------
+  task multi_round_test(input [7 : 0]    tc_number,
+                         input [1023 : 0] block,
+                         input [511 : 0]  expected);
 
+  begin
+    $display("*** TC %0d single block test case started.", tc_number);
+    tc_ctr = tc_ctr + 1;
+
+    tb_block = block;
+    tb_init = 1;
+    tb_rounds = 32'd2;
+
+    #(2 * CLK_PERIOD);
+    tb_init = 0;
+
+    wait_ready();
+
+    if (tb_digest == expected)
+      begin
+        $display("*** TC %0d successful.", tc_number);
+        $display("");
+      end
+    else
+      begin
+        $display("*** ERROR: TC %0d NOT successful.", tc_number);
+        $display("Expected: 0x%064x", expected);
+        $display("Got:      0x%064x", tb_digest);
+        $display("");
+
+        error_ctr = error_ctr + 1;
+      end
+   end
+
+  endtask
 
   
 
@@ -325,20 +362,7 @@ module tb_sha512_core();
       reg [1024 : 0] single_block;
       reg [511 : 0]  tc1_expected;
       reg [511 : 0]  tc2_expected;
-      reg [511 : 0]  tc3_expected;
-      reg [511 : 0]  tc4_expected;
-
-      reg [1024 : 0] double_block_one;
-      reg [1024 : 0] double_block_two;
-      reg [511 : 0]  tc5_expected;
-      reg [511 : 0]  tc6_expected;
-      reg [511 : 0]  tc7_expected;
-      reg [511 : 0]  tc8_expected;
-      reg [511 : 0]  tc9_expected;
-      reg [511 : 0]  tc10_expected;
-      reg [511 : 0]  tc11_expected;
-      reg [511 : 0]  tc12_expected;
-
+      
       $display("   -- Testbench for sha512 core started --");
 
       init_sim();
@@ -352,6 +376,12 @@ module tb_sha512_core();
       // SHA-512 single block digest and test.
       tc1_expected = 512'hDDAF35A193617ABACC417349AE20413112E6FA4E89A97EA20A9EEEE64B55D39A2192992A274FC1A836BA3C23A3FEEBBD454D4423643CE80E2A9AC94FA54CA49F;
       single_block_test(8'h01, single_block, tc1_expected);
+
+
+      // Multi round test message
+      single_block = 1024'h6162638000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000018;
+      tc2_expected = 512'hb0568cb91b7eadc05b54993f0a9b9543ac980a14a57924325e36295b11f3b203d6a647a568f76b188ba299aebed0b36760bea74871a4ef6d1dffd667d0295a74;
+      multi_round_test(8'h02, single_block, tc2_expected);
 
 
       display_test_result();

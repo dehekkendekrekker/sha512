@@ -40,18 +40,20 @@
 `default_nettype none
 
 module sha512_core(
-                   input wire            clk,
-                   input wire            reset_n,   // Resets W block, active low
+  input wire            clk,
+  input wire            reset_n,   // Resets W block, active low
 
-                   input wire            init,      // Initializes first round, active high. Pull high before a new series of PBKDF rounds. Mutually exclusive with 'next'.
+  input wire            init,      // Initializes first round, active high. Pull high before a new series of PBKDF rounds. Mutually exclusive with 'next'.
+  input wire [31:0]     sha_rounds,
 
-                   input wire [1023 : 0] block,
 
-                   output wire           ready,
-                   output wire [511 : 0] digest,
-                   output wire           digest_valid,
-                   output wire			  debug
-                  );
+  input wire [1023 : 0] block,
+
+  output wire           ready,
+  output wire [511 : 0] digest,
+  output wire           digest_valid,
+  output wire			  debug
+);
 
 
   //----------------------------------------------------------------
