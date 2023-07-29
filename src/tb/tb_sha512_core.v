@@ -60,11 +60,9 @@ module tb_sha512_core();
   reg            tb_init;
   reg            tb_next;
 
-  reg            tb_work_factor;
-  reg   [31 : 0] tb_work_factor_num;
-
   reg [1023 : 0] tb_block;
   wire           tb_ready;
+
   wire [511 : 0] tb_digest;
   wire           tb_digest_valid;
 
@@ -78,9 +76,6 @@ module tb_sha512_core();
 
                    .init(tb_init),
                    .next(tb_next),
-
-                   .work_factor(tb_work_factor),
-                   .work_factor_num(tb_work_factor_num),
 
                    .block(tb_block),
 
@@ -234,8 +229,7 @@ module tb_sha512_core();
       tb_init = 0;
       tb_next = 0;
       tb_next = 2'b00;
-      tb_work_factor = 0;
-      tb_work_factor_num = 32'h0;
+
       tb_block = {32{32'h00000000}};
     end
   endtask // init_dut
@@ -318,7 +312,6 @@ module tb_sha512_core();
        end
    end
   endtask // single_block_test
-
 
   //----------------------------------------------------------------
   // double_block_test()
@@ -454,3 +447,8 @@ endmodule // tb_sha512_core
 //======================================================================
 // EOF tb_sha512_core.v
 //======================================================================
+
+
+
+
+// DDAF35 A19361 7ABACC 417349 AE2041 3112E6 FA4E89 A97EA2 0A9EEE E64B55 D39A21 92992A 274FC1 A836BA 3C23A3 FEEBBD 454D44 23643C E80E2A 9AC94F A54CA4 9F;
