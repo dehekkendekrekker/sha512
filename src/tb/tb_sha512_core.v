@@ -276,8 +276,6 @@ module tb_sha512_core();
   task single_block_test(input [7 : 0]    tc_number,
                          input [1023 : 0] block,
                          input [511 : 0]  expected);
-    reg [511 : 0] mask;
-
    begin
      $display("*** TC %0d single block test case started.", tc_number);
      tc_ctr = tc_ctr + 1;
@@ -289,9 +287,7 @@ module tb_sha512_core();
 
      wait_ready();
 
-     mask = {16{32'hffffffff}};
-
-     if ((tb_digest & mask) == expected)
+     if (tb_digest == expected)
        begin
          $display("*** TC %0d successful.", tc_number);
          $display("");
@@ -307,6 +303,13 @@ module tb_sha512_core();
        end
    end
   endtask // single_block_test
+
+  //----------------------------------------------------------------
+  // multi_round_test()
+  //
+  // Run a test case spanning a multiple SHA512 rounds
+  //----------------------------------------------------------------
+
 
   
 
