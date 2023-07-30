@@ -44,8 +44,6 @@ module sha512_core(
                    input wire            reset_n,
 
                    input wire            init,
-                   input wire            next,
-
                    input wire [1023 : 0] block,
 
                    output wire           ready,
@@ -380,20 +378,6 @@ module sha512_core(
 
       if (state_init)
         begin
-          if (first_block)
-            begin
-              a_new  = H0_0;
-              b_new  = H0_1;
-              c_new  = H0_2;
-              d_new  = H0_3;
-              e_new  = H0_4;
-              f_new  = H0_5;
-              g_new  = H0_6;
-              h_new  = H0_7;
-              a_h_we = 1;
-            end
-          else
-            begin
               a_new  = H0_reg;
               b_new  = H1_reg;
               c_new  = H2_reg;
@@ -403,7 +387,6 @@ module sha512_core(
               g_new  = H6_reg;
               h_new  = H7_reg;
               a_h_we = 1;
-            end
         end
 
       if (state_update)
@@ -459,7 +442,6 @@ module sha512_core(
       digest_update       = 1'b0;
       state_init          = 1'b0;
       state_update        = 1'b0;
-      first_block         = 1'b0;
       w_init              = 1'b0;
       w_next              = 1'b0;
       round_ctr_inc       = 1'b0;
@@ -481,18 +463,6 @@ module sha512_core(
                 ready_new           = 1'b0;
                 ready_we            = 1'b1;
                 digest_init         = 1;
-                w_init              = 1;
-                state_init          = 1;
-                first_block         = 1;
-                round_ctr_rst       = 1;
-                sha512_ctrl_new     = CTRL_ROUNDS;
-                sha512_ctrl_we      = 1;
-              end
-
-            if (next)
-              begin
-                ready_new           = 1'b0;
-                ready_we            = 1'b1;
                 w_init              = 1;
                 state_init          = 1;
                 round_ctr_rst       = 1;
