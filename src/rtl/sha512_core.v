@@ -42,12 +42,13 @@
 module sha512_core(
                    input wire            clk,
                    input wire            reset_n,
-
                    input wire            init,
+
                    input wire [1023 : 0] block,
 
                    output wire           ready,
-                   output wire [511 : 0] digest
+                   output wire [511 : 0] digest,
+                   output wire           digest_valid
                   );
 
 
@@ -106,12 +107,6 @@ module sha512_core(
   reg          round_ctr_inc;
   reg          round_ctr_rst;
 
-  reg [31 : 0] work_factor_ctr_reg;
-  reg [31 : 0] work_factor_ctr_new;
-  reg          work_factor_ctr_rst;
-  reg          work_factor_ctr_inc;
-  reg          work_factor_ctr_we;
-
   reg          ready_reg;
   reg          ready_new;
   reg          ready_we;
@@ -133,8 +128,6 @@ module sha512_core(
 
   reg state_init;
   reg state_update;
-
-  reg first_block;
 
   reg [63 : 0] t1;
   reg [63 : 0] t2;
@@ -196,6 +189,9 @@ module sha512_core(
   assign digest = {H0_reg, H1_reg, H2_reg, H3_reg,
                    H4_reg, H5_reg, H6_reg, H7_reg};
 
+  assign digest_valid = digest_valid_reg;
+
+
   //----------------------------------------------------------------
   // reg_update
   // Update functionality for all registers in the core.
@@ -222,7 +218,6 @@ module sha512_core(
           H5_reg              <= 64'h0;
           H6_reg              <= 64'h0;
           H7_reg              <= 64'h0;
-          work_factor_ctr_reg <= 32'h0;
           ready_reg           <= 1'b1;
           digest_valid_reg    <= 1'b0;
           round_ctr_reg       <= 7'h0;
@@ -257,9 +252,6 @@ module sha512_core(
 
           if (round_ctr_we)
             round_ctr_reg <= round_ctr_new;
-
-          if (work_factor_ctr_we)
-            work_factor_ctr_reg <= work_factor_ctr_new;
 
           if (ready_we)
             ready_reg <= ready_new;
@@ -377,17 +369,17 @@ module sha512_core(
       a_h_we = 0;
 
       if (state_init)
-        begin
-              a_new  = H0_reg;
-              b_new  = H1_reg;
-              c_new  = H2_reg;
-              d_new  = H3_reg;
-              e_new  = H4_reg;
-              f_new  = H5_reg;
-              g_new  = H6_reg;
-              h_new  = H7_reg;
+            begin
+              a_new  = H0_0;
+              b_new  = H0_1;
+              c_new  = H0_2;
+              d_new  = H0_3;
+              e_new  = H0_4;
+              f_new  = H0_5;
+              g_new  = H0_6;
+              h_new  = H0_7;
               a_h_we = 1;
-        end
+            end
 
       if (state_update)
         begin
@@ -429,8 +421,7 @@ module sha512_core(
     end // round_ctr
 
 
-
-
+  
   //----------------------------------------------------------------
   // sha512_ctrl_fsm
   //
@@ -448,8 +439,6 @@ module sha512_core(
       round_ctr_rst       = 1'b0;
       digest_valid_new    = 1'b0;
       digest_valid_we     = 1'b0;
-      work_factor_ctr_rst = 1'b0;
-      work_factor_ctr_inc = 1'b0;
       ready_new           = 1'b0;
       ready_we            = 1'b0;
       sha512_ctrl_new     = CTRL_IDLE;
@@ -466,6 +455,8 @@ module sha512_core(
                 w_init              = 1;
                 state_init          = 1;
                 round_ctr_rst       = 1;
+                digest_valid_new    = 0;
+                digest_valid_we     = 1;
                 sha512_ctrl_new     = CTRL_ROUNDS;
                 sha512_ctrl_we      = 1;
               end
@@ -488,9 +479,12 @@ module sha512_core(
 
         CTRL_DONE:
           begin
+            
                 ready_new        = 1'b1;
                 ready_we         = 1'b1;
                 digest_update    = 1'b1;
+                digest_valid_new = 1'b1;
+                digest_valid_we  = 1'b1;
                 sha512_ctrl_new  = CTRL_IDLE;
                 sha512_ctrl_we   = 1'b1;
           end
