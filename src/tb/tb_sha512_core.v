@@ -63,6 +63,7 @@ module tb_sha512_core();
   wire           tb_ready;
 
   wire [511 : 0] tb_digest;
+  wire tb_digest_valid;
 
   //----------------------------------------------------------------
   // Device Under Test.
@@ -77,7 +78,8 @@ module tb_sha512_core();
 
                    .ready(tb_ready),
 
-                   .digest(tb_digest)
+                   .digest(tb_digest),
+                   .digest_valid(tb_digest_valid)
                  );
 
 

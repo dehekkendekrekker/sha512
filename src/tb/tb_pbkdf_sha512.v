@@ -116,6 +116,7 @@ begin
 
     tb_clk = 0;
     tb_reset_n = 1;
+    tb_rounds = 0;
 
     tb_init = 0;
 
@@ -176,6 +177,7 @@ begin
     tc_ctr = tc_ctr + 1;
 
     tb_block = block;
+    tb_rounds = rounds;
     tb_init = 1;
     
     #(2 * CLK_PERIOD);
