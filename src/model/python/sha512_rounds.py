@@ -6,8 +6,9 @@ algo = sha512()
 
 
 for i in range(2):
-    algo.update(input)
-    input = algo.digest()
+    print("Round: %s Input: %s" % (i, input.hex()))
+    input = sha512(input).digest()
 
+print("Result")
 print(input.hex())
 
