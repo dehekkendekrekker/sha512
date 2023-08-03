@@ -130,7 +130,6 @@ always @(posedge clk or negedge reset_n) begin
         ready_reg       <= 1'b1;
         round_ctr_reg   <= 32'b1;
         core_init_reg   <= 1'b0;
-		  core_input_reg  <= 1024'b0;
     end else begin
         // TODO +clk logic
 
@@ -193,8 +192,6 @@ always @* begin : pbkdf_fsm
     digest_valid_new    = 1'b0;
     core_init_new       = 1'b0;
     core_init_we        = 1'b0;
-	core_input_we       = 1'b0;
-	core_input_new      = 1024'b0;
     round_ctr_inc       = 0;
 
     state_new = STATE_IDLE;
