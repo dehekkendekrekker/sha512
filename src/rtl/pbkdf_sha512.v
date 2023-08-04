@@ -129,7 +129,7 @@ assign ready = ready_reg;
 assign digest_valid = digest_valid_reg;
 assign core_init = core_init_reg;
 assign core_input = core_input_reg;
-assign digest = (oe & ce) ? digest_reg : {64{8'hz}};
+assign digest = (oe & ce) ? digest_reg : {64{8'b0}};
 
 //----------------------------------------------------------------
 // reg_update

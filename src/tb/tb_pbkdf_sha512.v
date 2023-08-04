@@ -393,15 +393,15 @@ initial begin : pbkdf_core_test
     pbkdf_oe_test(8'd06, block, rounds, 1, 1, tc1_expected);
 
     // CE = 0, OE = 1,
-    tc1_expected = {64{8'hzz}};
+    tc1_expected = {64{8'h00}};
     pbkdf_oe_test(8'd07, block, rounds, 0, 1, tc1_expected);
 
     // CE = 1, OE = 0,
-    tc1_expected = {64{8'hzz}};
+    tc1_expected = {64{8'h00}};
     pbkdf_oe_test(8'd08, block, rounds, 1, 0, tc1_expected);
 
     // CE = 0, OE = 0,
-    tc1_expected = {64{8'hzz}};
+    tc1_expected = {64{8'h00}};
     pbkdf_oe_test(8'd09, block, rounds, 0, 0, tc1_expected);
 
     display_test_result();
