@@ -39,9 +39,10 @@
 
 module pbkdf_sha512(
     input wire clk,
-    input wire ce, // Chip enable. This pin must be H when cycling init to start the process
+    input wire ce, // Chip enable. This pin must be 1 when cycling init to start the process
     input wire reset_n,
     input wire init,
+    input wire oe, // Output enable. When this pins is high, the digest is presented on the digest bus.
 
     input wire [1023 : 0 ] data,
     input wire [31   : 0 ] rounds,
@@ -61,7 +62,7 @@ sha512_core sha512_core_inst (
     .init(core_init),
     .block(core_input),
     .ready(core_ready),
-    .digest(digest),
+    .digest(core_digest),
     .digest_valid(core_digest_valid)
 );
 
@@ -72,6 +73,7 @@ wire core_ready; // Driven by core
 wire core_init;  // Driven by pbkdf module
 wire core_digest_valid;
 wire [1023 : 0 ] core_input; // Driven by pbkdf module
+wire [511  : 0 ] core_digest;
 
 //----------------------------------------------------------------
 // Registers including update variables and write enable.
@@ -102,6 +104,15 @@ reg [1023 : 0]  core_input_reg;
 reg [1023 : 0]  core_input_new;
 reg             core_input_we;
 
+reg [31 : 0] rounds_reg;
+reg [31 : 0] rounds_new;
+reg          rounds_we;
+
+reg [511 : 0] digest_reg;
+reg [511 : 0] digest_new;
+reg           digest_we;
+
+
 //----------------------------------------------------------------
 // Internal constant and parameter definitions.
 //----------------------------------------------------------------
@@ -118,6 +129,7 @@ assign ready = ready_reg;
 assign digest_valid = digest_valid_reg;
 assign core_init = core_init_reg;
 assign core_input = core_input_reg;
+assign digest = (oe & ce) ? digest_reg : {64{8'hz}};
 
 //----------------------------------------------------------------
 // reg_update
@@ -132,6 +144,7 @@ always @(posedge clk or negedge reset_n) begin
         round_ctr_reg   <= 32'b1;
         core_init_reg   <= 1'b0;
         core_input_reg  <= 1024'b0;
+        rounds_reg      <= 32'b0;
     end else begin
         // TODO +clk logic
 
@@ -152,6 +165,12 @@ always @(posedge clk or negedge reset_n) begin
 
         if (core_input_we)
             core_input_reg <= core_input_new;
+
+        if (rounds_we)
+            rounds_reg <= rounds_new;
+
+        if (digest_we)
+            digest_reg <= digest_new;
     end
 end
 
@@ -196,6 +215,10 @@ always @* begin : pbkdf_fsm
     core_init_we        = 1'b0;
 	core_input_we       = 1'b0;
 	core_input_new      = 1024'b0;
+    rounds_new          = 0;
+    rounds_we           = 0;
+    digest_new          = 0;
+    digest_we           = 0;
     round_ctr_inc       = 0;
 
     state_new = STATE_IDLE;
@@ -211,8 +234,14 @@ always @* begin : pbkdf_fsm
             digest_valid_we     = 1;
             core_init_new       = 1;
             core_init_we        = 1;
+
+            // Load value on data bus into internal register
             core_input_new      = data;
             core_input_we       = 1;
+
+            // Same for rounds
+            rounds_new = rounds;
+            rounds_we  = 1;
 
             state_new           = STATE_INIT;
             state_we            = 1;
@@ -229,11 +258,11 @@ always @* begin : pbkdf_fsm
     STATE_HASHING: begin
         if (core_digest_valid) begin
             round_ctr_inc = 1;
-            if (round_ctr_reg == rounds) begin
+            if (round_ctr_reg == rounds_reg) begin
                 state_new = STATE_DONE;
                 state_we = 1;
             end else begin
-                core_input_new      = {digest, 1'b1, 499'b0, 12'd512};
+                core_input_new      = {core_digest, 1'b1, 499'b0, 12'd512};
                 core_input_we       = 1;
                 state_new = STATE_INIT;
                 state_we = 1;
@@ -244,12 +273,14 @@ always @* begin : pbkdf_fsm
     end
 
     STATE_DONE: begin
-        ready_new        = 1'b1;
-        ready_we         = 1'b1;
-        digest_valid_new = 1'b1;
-        digest_valid_we  = 1'b1;
-        state_new  = STATE_IDLE;
-        state_we   = 1'b1;
+        ready_new           = 1'b1;
+        ready_we            = 1'b1;
+        digest_valid_new    = 1'b1;
+        digest_valid_we     = 1'b1;
+        digest_new          = core_digest;
+        digest_we           = 1;
+        state_new           = STATE_IDLE;
+        state_we            = 1'b1;
     end
 
 
