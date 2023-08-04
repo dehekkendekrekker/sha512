@@ -55,9 +55,10 @@ reg [31 : 0] cycle_ctr;
 reg [31 : 0] error_ctr;
 reg [31 : 0] tc_ctr;
 
-reg            tb_clk;
-reg            tb_reset_n;
-reg            tb_init;
+reg             tb_clk;
+reg             tb_reset_n;
+reg             tb_ce;
+reg             tb_init;
 
 reg [1023 : 0] tb_block;
 reg [31   : 0] tb_rounds;
@@ -71,6 +72,7 @@ wire [511 : 0] tb_digest;
 pbkdf_sha512 dut(
     .clk(tb_clk),
     .reset_n(tb_reset_n),
+    .ce(tb_ce),
     .init(tb_init),
     .block(tb_block),
     .rounds(tb_rounds),
@@ -116,6 +118,7 @@ begin
 
     tb_clk = 0;
     tb_reset_n = 1;
+    tb_ce = 0;
     tb_rounds = 0;
 
     tb_init = 0;
@@ -159,6 +162,35 @@ begin
     end
 end
 endtask // wait_ready
+
+task pbkdf_ce_test(
+    input [7 : 0] tc_number,
+    input ce,
+    input expected
+);
+begin
+    $display("*** TC %0d ce behaviour test case started.", tc_number);
+    tc_ctr = tc_ctr + 1;
+
+    tb_ce   = ce;
+    tb_init = 1;
+
+    #(2 * CLK_PERIOD);
+
+    // Verify that ready is still high
+    if (tb_ready == expected) begin
+        $display("*** TC %0d successful.", tc_number);
+        $display("");
+    end else begin
+        $display("*** ERROR: TC %0d NOT successful.", tc_number);
+        $display("Expected: 0x%01x", expected);
+        $display("Got:      0x%01x", tb_ready);
+        $display("");
+
+        error_ctr = error_ctr + 1;
+    end
+end
+endtask
 
 
 //----------------------------------------------------------------
@@ -215,23 +247,29 @@ initial begin : pbkdf_core_test
     init_sim();
     reset_dut();
 
+    // CE behavior tests
+    pbkdf_ce_test(8'd1, 1'b0, 1'b1);
+    pbkdf_ce_test(8'd2, 1'b1, 1'b0);
+
+    reset_dut();
+
     // Single block test mesage, calcute 2 rounds
     block = 1024'h6162638000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000018;
     rounds       = 2;
     tc1_expected = 512'h373a9f3a902cf561003b513c94c5164ba4af135cbc4eb4d856b89ea5609523f130bbe5e453e6c645b2765a265aaeb1390c82c913130870636cd0c8ecf980d851;
-    pbkdf_test_runner(8'h01, block, rounds, tc1_expected);
+    pbkdf_test_runner(8'd03, block, rounds, tc1_expected);
 
     // Single block test mesage, calcute 10 rounds
     block = 1024'h6162638000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000018;
     rounds       = 10;
     tc2_expected = 512'h4c3ead8c83442fff47d4386702044f2a6c19730a806de541964b0fa9987cac08641611e02b2e0742ef2600ff82bfe3a711567c8e76dda16b4948f4c76e3c6e9c;
-    pbkdf_test_runner(8'h02, block, rounds, tc2_expected);
+    pbkdf_test_runner(8'h04, block, rounds, tc2_expected);
 
     // Single block test mesage, calcute 50 rounds
     block = 1024'h6162638000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000018;
     rounds       = 50;
     tc3_expected = 512'h26d4ce3f28c94c3f354ceac7100d8ce1755eccf86345c6a6fb327bf6eae6f7b267de0e6959b74fe4fe520e945f093692d8a24975973638fccd12855b3d7083ca;
-    pbkdf_test_runner(8'h03, block, rounds, tc3_expected);
+    pbkdf_test_runner(8'h05, block, rounds, tc3_expected);
 
     display_test_result();
     $display("*** Simulation done.");

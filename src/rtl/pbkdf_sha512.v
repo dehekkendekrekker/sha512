@@ -1,6 +1,6 @@
 //======================================================================
 //
-// sha512_core.v
+// pbkdf_sha512.v
 // -------------
 // Verilog 2001 implementation of a PBKF using SHA512
 //
@@ -39,6 +39,7 @@
 
 module pbkdf_sha512(
     input wire clk,
+    input wire ce, // Chip enable. This pin must be H when cycling init to start the process
     input wire reset_n,
     input wire init,
 
@@ -130,7 +131,7 @@ always @(posedge clk or negedge reset_n) begin
         ready_reg       <= 1'b1;
         round_ctr_reg   <= 32'b1;
         core_init_reg   <= 1'b0;
-		  core_input_reg  <= 1024'b0;
+        core_input_reg  <= 1024'b0;
     end else begin
         // TODO +clk logic
 
@@ -202,7 +203,7 @@ always @* begin : pbkdf_fsm
 
     case (state_reg)
     STATE_IDLE: begin
-        if (init) begin
+        if (init && ce) begin
             ready_new           = 1'b0;
             ready_we            = 1'b1;
             round_ctr_rst       = 1;
