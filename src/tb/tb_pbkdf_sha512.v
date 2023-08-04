@@ -60,7 +60,7 @@ reg             tb_reset_n;
 reg             tb_ce;
 reg             tb_init;
 
-reg [1023 : 0] tb_block;
+reg [1023 : 0] tb_data;
 reg [31   : 0] tb_rounds;
 wire           tb_ready;
 
@@ -74,7 +74,7 @@ pbkdf_sha512 dut(
     .reset_n(tb_reset_n),
     .ce(tb_ce),
     .init(tb_init),
-    .block(tb_block),
+    .data(tb_data),
     .rounds(tb_rounds),
     .ready(tb_ready),
     .digest(tb_digest)
@@ -123,7 +123,7 @@ begin
 
     tb_init = 0;
 
-    tb_block = {32{32'h00000000}};
+    tb_data = {32{32'h00000000}};
 end
 endtask // init_dut
 
@@ -163,6 +163,13 @@ begin
 end
 endtask // wait_ready
 
+
+
+//----------------------------------------------------------------
+// pbkdf_ce_test()
+//
+// This testcase tests the correct operation of the CE pin
+//----------------------------------------------------------------
 task pbkdf_ce_test(
     input [7 : 0] tc_number,
     input ce,
@@ -208,7 +215,7 @@ begin
     $display("*** TC %0d single block test case started.", tc_number);
     tc_ctr = tc_ctr + 1;
 
-    tb_block = block;
+    tb_data = block;
     tb_rounds = rounds;
     tb_init = 1;
     

@@ -43,7 +43,7 @@ module pbkdf_sha512(
     input wire reset_n,
     input wire init,
 
-    input wire [1023 : 0 ] block,
+    input wire [1023 : 0 ] data,
     input wire [31   : 0 ] rounds,
 
     output wire ready,
@@ -211,7 +211,7 @@ always @* begin : pbkdf_fsm
             digest_valid_we     = 1;
             core_init_new       = 1;
             core_init_we        = 1;
-            core_input_new      = block;
+            core_input_new      = data;
             core_input_we       = 1;
 
             state_new           = STATE_INIT;
