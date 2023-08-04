@@ -39,10 +39,8 @@
 
 module pbkdf_sha512(
     input wire clk,
-    input wire ce, // Chip enable. This pin must be 1 when cycling init to start the process
     input wire reset_n,
     input wire init,
-    input wire oe, // Output enable. When this pins is high, the digest is presented on the digest bus.
 
     input wire [1023 : 0 ] data,
     input wire [31   : 0 ] rounds,
@@ -129,7 +127,7 @@ assign ready = ready_reg;
 assign digest_valid = digest_valid_reg;
 assign core_init = core_init_reg;
 assign core_input = core_input_reg;
-assign digest = (oe & ce) ? digest_reg : {64{8'b0}};
+assign digest = digest_reg;
 
 //----------------------------------------------------------------
 // reg_update
@@ -228,7 +226,7 @@ always @* begin : pbkdf_fsm
 
     case (state_reg)
     STATE_IDLE: begin
-        if (init && ce) begin
+        if (init) begin
             ready_new           = 1'b0;
             ready_we            = 1'b1;
             round_ctr_rst       = 1;

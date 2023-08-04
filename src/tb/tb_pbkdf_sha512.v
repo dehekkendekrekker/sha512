@@ -57,9 +57,7 @@ reg [31 : 0] tc_ctr;
 
 reg             tb_clk;
 reg             tb_reset_n;
-reg             tb_ce;
 reg             tb_init;
-reg             tb_oe;
 
 reg [1023 : 0] tb_data;
 reg [31   : 0] tb_rounds;
@@ -74,8 +72,6 @@ wire            tb_digest_valid;
 pbkdf_sha512 dut(
     .clk(tb_clk),
     .reset_n(tb_reset_n),
-    .ce(tb_ce),
-    .oe(tb_oe),
     .init(tb_init),
     .data(tb_data),
     .rounds(tb_rounds),
@@ -122,9 +118,7 @@ begin
 
     tb_clk = 0;
     tb_reset_n = 1;
-    tb_ce = 0;
     tb_rounds = 0;
-    tb_oe = 0;
 
     tb_init = 0;
 
@@ -186,13 +180,11 @@ begin
     tc_ctr = tc_ctr + 1;
 
 
-    tb_ce     = 1;
-    tb_oe     = 0;
     tb_init   = 1;
     tb_data   = block;
     tb_rounds = rounds;
 
-    // Wait 2 cycles, then change the data and rounds buses.
+    // Wait 1 cycle, then change the data and rounds buses.
     #(CLK_PERIOD);
     tb_init     = 0;
     tb_data     = {32{32'hdeadbeef}};
@@ -200,10 +192,6 @@ begin
 
     // Wait for the job to finish
     wait_ready();
-    tb_oe = 1;
-    #(CLK_PERIOD);
-
-
 
     if (tb_digest == expected) begin
         $display("*** TC %0d successful.", tc_number);
@@ -222,39 +210,7 @@ begin
 end
 endtask
 
-//----------------------------------------------------------------
-// pbkdf_ce_test()
-//
-// This testcase tests the correct operation of the CE pin
-//----------------------------------------------------------------
-task pbkdf_ce_test(
-    input [7 : 0] tc_number,
-    input ce,
-    input expected
-);
-begin
-    $display("*** TC %0d ce behaviour test case started.", tc_number);
-    tc_ctr = tc_ctr + 1;
 
-    tb_ce   = ce;
-    tb_init = 1;
-
-    #(CLK_PERIOD);
-
-    // Verify that ready is still high
-    if (tb_ready == expected) begin
-        $display("*** TC %0d successful.", tc_number);
-        $display("");
-    end else begin
-        $display("*** ERROR: TC %0d NOT successful.", tc_number);
-        $display("Expected: 0x%01x", expected);
-        $display("Got:      0x%01x", tb_ready);
-        $display("");
-
-        error_ctr = error_ctr + 1;
-    end
-end
-endtask
 
 
 //----------------------------------------------------------------
@@ -275,15 +231,11 @@ begin
     tb_data = block;
     tb_rounds = rounds;
     tb_init = 1;
-    tb_ce   = 1;
-    tb_oe   = 0;
     
     #(CLK_PERIOD);
     tb_init = 0;
 
     wait_ready();
-    tb_oe = 1;
-    #(CLK_PERIOD);
 
     if (tb_digest == expected) begin
         $display("*** TC %0d successful.", tc_number);
@@ -299,49 +251,6 @@ begin
 end
 endtask
 
-//----------------------------------------------------------------
-// pbkdf_oe_test()
-//
-// This test case tests the correct operation the oe (output enable) pin
-//----------------------------------------------------------------
-task pbkdf_oe_test(input [7 : 0]    tc_number,
-                input [1023 : 0] block,
-                input [31 : 0] rounds,
-                input ce,
-                input oe,
-                input [511 : 0]  expected);
-
-begin
-    $display("*** TC %0d OE testcase started.", tc_number);
-    tc_ctr = tc_ctr + 1;
-
-    tb_data = block;
-    tb_rounds = rounds;
-    tb_init = 1;
-    tb_ce   = 1;
-    tb_oe   = 0;
-    
-    #(CLK_PERIOD);
-    tb_init = 0;
-
-    wait_ready();
-    tb_oe = oe;
-    tb_ce = ce;
-    #(CLK_PERIOD);
-
-    if (tb_digest === expected) begin
-        $display("*** TC %0d successful.", tc_number);
-        $display("");
-    end else begin
-        $display("*** ERROR: TC %0d NOT successful.", tc_number);
-        $display("Expected: 0x%064x", expected);
-        $display("Got:      0x%064x", tb_digest);
-        $display("");
-
-        error_ctr = error_ctr + 1;
-    end
-end
-endtask
 
 //----------------------------------------------------------------
 // pbkdf_reset_test()
@@ -354,9 +263,6 @@ begin
     tc_ctr = tc_ctr + 1;
 
     tb_reset_n = 0;
-    // OE and CE should be 1, as only under this condition the digest_register ouputs a value.
-    tb_ce      = 1; 
-    tb_oe      = 1;
     #(CLK_PERIOD);
 
     if (tb_digest === {64{8'b0}} && tb_ready === 1'b1 && tb_digest_valid === 1'b0) begin
@@ -393,12 +299,6 @@ initial begin : pbkdf_core_test
     init_sim();
     reset_dut();
 
-    // CE behavior tests
-    pbkdf_ce_test(8'd1, 1'b0, 1'b1);
-    pbkdf_ce_test(8'd2, 1'b1, 1'b0);
-
-    reset_dut();
-
     // Test for proper bus clearance
     block = 1024'h6162638000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000018;
     rounds       = 2;
@@ -422,23 +322,6 @@ initial begin : pbkdf_core_test
     rounds       = 50;
     tc3_expected = 512'h26d4ce3f28c94c3f354ceac7100d8ce1755eccf86345c6a6fb327bf6eae6f7b267de0e6959b74fe4fe520e945f093692d8a24975973638fccd12855b3d7083ca;
     pbkdf_test_runner(8'h05, block, rounds, tc3_expected);
-
-    block = 1024'h6162638000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000018;
-    rounds       = 2;
-    tc1_expected = 512'h373a9f3a902cf561003b513c94c5164ba4af135cbc4eb4d856b89ea5609523f130bbe5e453e6c645b2765a265aaeb1390c82c913130870636cd0c8ecf980d851;
-    pbkdf_oe_test(8'd06, block, rounds, 1, 1, tc1_expected);
-
-    // CE = 0, OE = 1,
-    tc1_expected = {64{8'h00}};
-    pbkdf_oe_test(8'd07, block, rounds, 0, 1, tc1_expected);
-
-    // CE = 1, OE = 0,
-    tc1_expected = {64{8'h00}};
-    pbkdf_oe_test(8'd08, block, rounds, 1, 0, tc1_expected);
-
-    // CE = 0, OE = 0,
-    tc1_expected = {64{8'h00}};
-    pbkdf_oe_test(8'd09, block, rounds, 0, 0, tc1_expected);
 
     $display("");
     $display("Reset test");
