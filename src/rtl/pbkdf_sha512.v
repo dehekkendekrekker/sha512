@@ -140,11 +140,13 @@ assign digest = (oe & ce) ? digest_reg : {64{8'b0}};
 always @(posedge clk or negedge reset_n) begin
     if (!reset_n) begin
         state_reg       <= STATE_IDLE;
-        ready_reg       <= 1'b1;
         round_ctr_reg   <= 32'b1;
+        ready_reg       <= 1'b1;
+        digest_valid_reg <= 1'b0;
         core_init_reg   <= 1'b0;
         core_input_reg  <= 1024'b0;
         rounds_reg      <= 32'b0;
+        digest_reg      <= 512'b0;
     end else begin
         // TODO +clk logic
 

@@ -66,6 +66,7 @@ reg [31   : 0] tb_rounds;
 wire           tb_ready;
 
 wire [511 : 0] tb_digest;
+wire            tb_digest_valid;
 
 //----------------------------------------------------------------
 // Device Under Test.
@@ -79,7 +80,8 @@ pbkdf_sha512 dut(
     .data(tb_data),
     .rounds(tb_rounds),
     .ready(tb_ready),
-    .digest(tb_digest)
+    .digest(tb_digest),
+    .digest_valid(tb_digest_valid)
 );
 
 //----------------------------------------------------------------
@@ -208,8 +210,8 @@ begin
         $display("");
     end else begin
         $display("*** ERROR: TC %0d NOT successful.", tc_number);
-        $display("Expected: 0x%064x", expected);
-        $display("Got:      0x%064x", tb_digest);
+        $display("Expected: 0x%0128x", expected);
+        $display("Got:      0x%0128x", tb_digest);
         $display("");
 
         error_ctr = error_ctr + 1;
@@ -342,6 +344,40 @@ end
 endtask
 
 //----------------------------------------------------------------
+// pbkdf_reset_test()
+//
+// This test case tests the correct operation the oe (output enable) pin
+//----------------------------------------------------------------
+task pbkdf_reset_test(input [7 : 0]    tc_number);
+begin
+    $display("*** TC %0d reset testcase started.", tc_number);
+    tc_ctr = tc_ctr + 1;
+
+    tb_reset_n = 0;
+    // OE and CE should be 1, as only under this condition the digest_register ouputs a value.
+    tb_ce      = 1; 
+    tb_oe      = 1;
+    #(CLK_PERIOD);
+
+    if (tb_digest === {64{8'b0}} && tb_ready === 1'b1 && tb_digest_valid === 1'b0) begin
+        $display("*** TC %0d successful.", tc_number);
+        $display("");
+    end else begin
+      $display("*** ERROR: TC %0d NOT successful.", tc_number);
+        $display("Expected result:          0x%0128x, got: 0x%128x", {16{8'b0}}, tb_digest);
+        $display("Expected ready:           0x%01x, got: 0x%01x", 1'b1, tb_ready);
+        $display("Expected tb_digest_valid: 0x%01x, got: 0x%01x", 1'b0, tb_digest_valid);
+        $display("");
+
+        error_ctr = error_ctr + 1;
+    end
+
+
+
+end
+endtask
+
+//----------------------------------------------------------------
 // pbkdf_core_test
 // The main test functionality.
 //----------------------------------------------------------------
@@ -403,6 +439,11 @@ initial begin : pbkdf_core_test
     // CE = 0, OE = 0,
     tc1_expected = {64{8'h00}};
     pbkdf_oe_test(8'd09, block, rounds, 0, 0, tc1_expected);
+
+    $display("");
+    $display("Reset test");
+    $display("---------------------");
+    pbkdf_reset_test(8'd6);
 
     display_test_result();
     $display("*** Simulation done.");
